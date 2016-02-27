@@ -1,6 +1,8 @@
 This is a guide on how to make ENC28J60 SPI ethernet controller module work
 together with imx233 Olinuxino Mini board. 
 
+![Photo](/photo.jpg)
+
 Drop patches into target/linux/mxs/patches-X.X/ folder to have them applied to
 linux kernel for this target. You do not need to add any code as described
 below if you use the patches for OpenWRT. Below is a description of what the
