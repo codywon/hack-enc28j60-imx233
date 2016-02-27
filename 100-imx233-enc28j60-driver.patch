@@ -1,0 +1,72 @@
+--- a/drivers/net/ethernet/microchip/enc28j60.c	2016-02-25 21:01:36.000000000 +0100
++++ b/drivers/net/ethernet/microchip/enc28j60.c	2016-02-27 15:08:15.265125291 +0100
+@@ -84,6 +84,7 @@
+  * SPI read buffer
+  * wait for the SPI transfer and copy received data to destination
+  */
++#if 0
+ static int
+ spi_read_buf(struct enc28j60_net *priv, int len, u8 *data)
+ {
+@@ -113,6 +114,61 @@
+ 
+ 	return ret;
+ }
++#endif
++
++static int
++spi_read_buf(struct enc28j60_net *priv, int len, u8 *data)
++{
++  static int nbmsg=0;
++  nbmsg++;
++//     printk("Receive message %d\n",nbmsg);
++    u8 *rx_buf = priv->spi_transfer_buf + 4;
++    u8 *tx2_buf=priv->spi_transfer_buf+2;
++    u8 *tx_buf = priv->spi_transfer_buf;
++    struct spi_transfer t = {
++        .tx_buf = tx_buf,
++        .rx_buf = NULL,
++        .len = SPI_OPLEN,
++        .cs_change = 0,
++    };
++
++    struct spi_transfer r = {
++        .tx_buf = NULL,
++        .rx_buf = rx_buf,
++        .len = len,
++        .cs_change = 1,
++    };
++
++    struct spi_transfer t2 = {
++        .tx_buf = tx2_buf,
++        .rx_buf = NULL,
++        .len = SPI_OPLEN,
++        .cs_change = 0,
++    };
++
++    struct spi_message msg;
++    int ret;
++
++    tx_buf[0] = ENC28J60_READ_BUF_MEM;
++    tx_buf[1] = tx_buf[2] = tx_buf[3] = 0;  // don't care
++    tx2_buf[0]= ENC28J60_MSG_DEFAULT;
++    spi_message_init(&msg);
++    spi_message_add_tail(&t, &msg);
++    spi_message_add_tail(&r, &msg);
++    spi_message_add_tail(&t2, &msg);
++    ret = spi_sync(priv->spi, &msg);
++    if (ret == 0) {
++        memcpy(data, rx_buf, len);
++        ret = msg.status;
++    }
++    if (ret && netif_msg_drv(priv))
++    {
++        printk(DRV_NAME ": %s() failed: ret = %d\n",
++            __func__, ret);
++    }
++
++    return ret;
++}
+ 
+ /*
+  * SPI write buffer
